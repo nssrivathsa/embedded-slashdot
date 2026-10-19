@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EmbeddedDot // News for Nerds. Stuff that Fits in SRAM.</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <!-- Top Black Utility Strip -->
+  <div class="top-utility-bar">
+    <div class="utility-left">
+      <span class="slash-logo-mark">/.</span>
+      <a href="#" id="navAllTopics" class="active">All Embedded AI</a>
+      <span class="sep">|</span>
+      <a href="#" data-topic="tinyml">TinyML &amp; MCUs</a>
+      <span class="sep">|</span>
+      <a href="#" data-topic="quantization">Quantization</a>
+      <span class="sep">|</span>
+      <a href="#" data-topic="npu_asic">NPUs &amp; RISC-V</a>
+      <span class="sep">|</span>
+      <a href="#" data-topic="fpga">FPGA</a>
+      <span class="sep">|</span>
+      <a href="#" data-topic="edge_llm">On-Device LLMs</a>
+      <span class="sep">|</span>
+      <a href="#" data-topic="edge_vision">Embedded Vision</a>
+    </div>
+    <div class="utility-right">
+      <span id="geminiStatusBadge" class="status-pill">Summarizer: Checking...</span>
+      <button id="openKeyModalBtn" class="tiny-btn" title="Configure Gemini API Key">🔑 Gemini API Key</button>
+      <button id="openPolicyModalBtn" class="tiny-btn" title="View Curation Policy &amp; 7 Source Streams">📜 7 Sources &amp; Policy</button>
+    </div>
+  </div>
+
+  <!-- Classic Slashdot Teal Masthead -->
+  <header class="slashdot-header">
+    <div class="brand-block">
+      <div class="brand-title">
+        <span class="brand-main">EMBEDDED</span><span class="brand-dot">DOT</span><span class="brand-slash">/.</span>
+      </div>
+      <div class="brand-slogan">News for Nerds. Stuff that Fits in SRAM. (Newsletters + Hardware Blogs + arXiv + IEEE/ACM + HN)</div>
+    </div>
+
+    <!-- 3-Year Time Machine Controls -->
+    <div class="time-machine-bar">
+      <button id="prevDayBtn" class="nav-btn" title="Go to previous day">◄ Older Day</button>
+      <div class="date-picker-wrap">
+        <label for="datePickerInput">Edition:</label>
+        <input type="date" id="datePickerInput" />
+      </div>
+      <button id="todayBtn" class="nav-btn">Today</button>
+      <button id="nextDayBtn" class="nav-btn" title="Go to next day">Newer Day ►</button>
+      <button id="refreshDayBtn" class="nav-btn accent-btn" title="Re-fetch all 7 sources &amp; summarize with Gemini if key is set">⚡ Re-Curate Day</button>
+    </div>
+  </header>
+
+  <!-- Sub-header Bar: Edition Info + Source Filter + Quick Time-Jumps -->
+  <div class="subheader-bar">
+    <div class="edition-banner" id="editionBanner">
+      Loading daily embedded AI edition...
+    </div>
+    <div class="quick-jumps">
+      <select id="sourceFilterSelect" title="Filter by Source Family" style="font-size:11px; padding:2px 5px; border:1px solid #668888; font-weight:bold; color:#003b3b;">
+        <option value="all">All 7 Sources</option>
+        <option value="newsletters">📬 Newsletters &amp; Hardware Blogs (CNX, Hackaday, Memfault, Substack)</option>
+        <option value="papers">📄 Technical Papers (arXiv, IEEE/ACM OpenAlex, HF Daily)</option>
+        <option value="hn">💬 Hacker News Dispatches</option>
+      </select>
+      <span>Jumps:</span>
+      <button class="jump-link" data-offset="1">-1d</button>
+      <button class="jump-link" data-offset="7">-1w</button>
+      <button class="jump-link" data-offset="30">-1mo</button>
+      <button class="jump-link" data-offset="180">-6mo</button>
+      <button class="jump-link" data-offset="365">-1yr</button>
+      <button class="jump-link" data-offset="730">-2yr</button>
+      <button class="jump-link" data-offset="1095">-3yr (Max)</button>
+      <input type="search" id="searchFilterInput" placeholder="Filter stories (e.g. INT4, FPGA, SRAM)..." />
+    </div>
+  </div>
+
+  <!-- Main 2-Column Slashdot Layout -->
+  <div class="main-container">
+    <!-- Left / Center Story Feed -->
+    <main class="stories-column">
+      <div id="loadingIndicator" class="loading-box hidden">
+        <div class="spinner"></div>
+        <div id="loadingText">Querying 7 date-windowed sources (CNX Software, Hackaday, Interrupt/Substack Newsletters, IEEE/ACM OpenAlex, HF Daily Papers, arXiv &amp; HN)...</div>
+      </div>
+
+      <!-- Multi-day Feed Container -->
+      <div id="daysFeedContainer"></div>
+
+      <!-- Bottom Slashdot Pagination / Continuous Previous-Day Loader -->
+      <div class="older-stuff-footer">
+        <div class="older-stuff-info">
+          Showing curated Embedded AI advancements up to <strong id="oldestLoadedDateLabel">...</strong>
+          (Archive window goes back 3 full years to <span id="minDateBoundLabel">...</span>).
+        </div>
+        <div class="older-stuff-actions">
+          <button id="appendPreviousDayBtn" class="slash-action-btn">
+            ▼ Load &amp; Append Previous Day (<span id="nextOlderDatePreview">...</span>) Below
+          </button>
+          <button id="switchPreviousDayBtn" class="slash-secondary-btn">
+            ◄ Switch Page to Previous Day Only
+          </button>
+        </div>
+      </div>
+    </main>
+
+    <!-- Right Sidebar: Classic "Slashboxes" -->
+    <aside class="slashboxes-column">
+      <!-- Slashbox 1: Gemini LLM Summarizer Configuration -->
+      <section class="slashbox">
+        <div class="slashbox-title">Gemini 3.8 Summarizer</div>
+        <div class="slashbox-body">
+          <p class="small-note">
+            Works out-of-the-box with a deterministic hardware rule engine, or upgrades to full
+            <strong>Gemini 3.8 Flash</strong> Slashdot editorials when you add your API key.
+          </p>
+          <div class="key-status-row">
+            <span>Status:</span>
+            <strong id="sidebarKeyStatus">Checking...</strong>
+          </div>
+          <div class="inline-key-form">
+            <input type="password" id="sidebarApiKeyInput" placeholder="Paste GEMINI_API_KEY..." />
+            <div class="btn-row">
+              <button id="saveSidebarKeyBtn" class="slash-small-btn primary">Save Key &amp; Summarize</button>
+              <button id="clearSidebarKeyBtn" class="slash-small-btn">Clear</button>
+            </div>
+          </div>
+          <div id="keyFeedbackMsg" class="feedback-msg"></div>
+        </div>
+      </section>
+
+      <!-- Slashbox 2: Daily Curation Telemetry -->
+      <section class="slashbox">
+        <div class="slashbox-title">Edition Telemetry</div>
+        <div class="slashbox-body" id="telemetryBoxBody">
+          <ul class="slash-list">
+            <li><strong>Edition Date:</strong> <span id="statDate">-</span></li>
+            <li><strong>Newsletters &amp; Blogs Scanned:</strong> <span id="statNewsletters">-</span></li>
+            <li><strong>arXiv Preprints Scanned:</strong> <span id="statArxiv">-</span></li>
+            <li><strong>IEEE/ACM &amp; HF Papers Scanned:</strong> <span id="statIeeeHf">-</span></li>
+            <li><strong>HN Dispatches Scanned:</strong> <span id="statHn">-</span></li>
+            <li><strong>Stories Selected:</strong> <span id="statSelected">-</span></li>
+            <li><strong>Avg Hardware Signal:</strong> <span id="statScore">-</span></li>
+            <li><strong>Writeup Engine:</strong> <span id="statEngine">-</span></li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Slashbox 3: 7 Active Curation Sources -->
+      <section class="slashbox">
+        <div class="slashbox-title">7 Date-Windowed Sources</div>
+        <div class="slashbox-body">
+          <ul class="slash-list compact">
+            <li><strong>1. CNX Software:</strong> Date-windowed WP REST API for SBCs, Edge AI NPUs (Hailo/Rockchip/Axelera), RISC-V &amp; MCUs.</li>
+            <li><strong>2. Free Substack &amp; Firmware Newsletters:</strong> <em>Interrupt by Memfault</em>, <em>SemiAnalysis</em>, <em>Import AI</em> (Jack Clark), <em>Ahead of AI</em> (S. Raschka) &amp; <em>Last Week in AI</em>.</li>
+            <li><strong>3. Hackaday Dispatch:</strong> Date-windowed hardware, FPGA, bare-metal ML &amp; PCB hacks.</li>
+            <li><strong>4. OpenAlex IEEE / ACM:</strong> Peer-reviewed papers from <em>IEEE TCAD</em>, <em>IEEE Micro</em>, <em>ACM TECS</em>, <em>ISSCC</em>.</li>
+            <li><strong>5. Hugging Face Daily Papers:</strong> Community-upvoted efficient SLMs &amp; quantization papers by date.</li>
+            <li><strong>6. arXiv Preprints:</strong> <code>cs.AR</code>, <code>cs.LG</code>, <code>cs.CV</code>, <code>eess.SP</code>, <code>cs.PF</code>.</li>
+            <li><strong>7. Algolia HN Archive:</strong> Timestamp-indexed releases &amp; engineering threads.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Slashbox 4: Cached Editions Archive -->
+      <section class="slashbox">
+        <div class="slashbox-title">Cached Editions (SQLite)</div>
+        <div class="slashbox-body">
+          <div id="cachedDatesList" class="cached-dates-grid">
+            <span class="muted">No cached dates yet.</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slashbox 5: Classic Slashdot Poll -->
+      <section class="slashbox">
+        <div class="slashbox-title">EmbeddedDot Poll</div>
+        <div class="slashbox-body">
+          <p class="poll-question"><strong>What is the #1 bottleneck in your current Embedded AI project?</strong></p>
+          <form id="slashPollForm" class="poll-form">
+            <label><input type="radio" name="poll" value="sram" checked /> On-chip SRAM for activations / KV cache</label>
+            <label><input type="radio" name="poll" value="flash" /> SPI Flash / LPDDR memory bandwidth</label>
+            <label><input type="radio" name="poll" value="tooling" /> Buggy vendor NPU compilers &amp; SDKs</label>
+            <label><input type="radio" name="poll" value="quant" /> Accuracy drop below INT4 quantization</label>
+            <label><input type="radio" name="poll" value="power" /> Thermal / milliwatt battery envelope</label>
+            <button type="submit" class="slash-small-btn">Vote</button>
+          </form>
+          <div id="pollResults" class="poll-results hidden"></div>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <!-- Modal: Curation Policy Details -->
+  <div id="policyModal" class="modal-backdrop hidden">
+    <div class="modal-window">
+      <div class="modal-header">
+        <span>EmbeddedDot 7-Source Curation Architecture &amp; 3-Year Policy</span>
+        <button class="modal-close" data-close="policyModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <h3>How Dynamic 3-Year Lookback Works Across 7 Free Sources</h3>
+        <p>
+          You can browse any day from <strong>today</strong> back <strong>1,095 days (3 years)</strong> without pre-fetching gigabytes of archives.
+          Whenever you navigate to a date (or click <em>Load &amp; Append Previous Day</em>), EmbeddedDot queries 7 distinct date-windowed channels concurrently:
+        </p>
+        <ol>
+          <li><strong>CNX Software (Embedded Systems News):</strong> Queries <code>cnx-software.com/wp-json/wp/v2/posts?after=...&amp;before=...</code> for exact historical coverage of Edge AI SoCs, NPUs, RISC-V boards, and MCUs.</li>
+          <li><strong>Free Embedded &amp; AI Newsletters:</strong> Matches historical editions from <em>Interrupt by Memfault</em> (Atom archive), <em>SemiAnalysis</em>, <em>Import AI</em>, <em>Ahead of AI</em>, and <em>Last Week in AI</em> (Substack archives).</li>
+          <li><strong>Hackaday Hardware Dispatch:</strong> Queries <code>hackaday.com/wp-json/wp/v2/posts?after=...&amp;before=...</code> for FPGA, microcontroller, and bare-metal AI builds.</li>
+          <li><strong>OpenAlex Peer-Reviewed IEEE / ACM Papers:</strong> Queries <code>api.openalex.org/works</code> by publication date across <em>IEEE TCAD</em>, <em>IEEE Micro</em>, <em>ACM TECS</em>, and <em>IEEE IoT Journal</em>.</li>
+          <li><strong>Hugging Face Daily Papers:</strong> Queries <code>huggingface.co/api/daily_papers?date=YYYY-MM-DD</code> for community-curated quantization and on-device SLM papers.</li>
+          <li><strong>arXiv Preprints:</strong> Queries <code>export.arxiv.org/api/query</code> with a <code>submittedDate</code> window across <code>cs.AR</code>, <code>cs.LG</code>, <code>cs.CV</code>, <code>eess.SP</code>, and <code>cs.PF</code>.</li>
+          <li><strong>Hacker News Algolia Timestamp Search:</strong> Queries <code>hn.algolia.com/api/v1/search_by_date</code> with exact Unix timestamps for community hardware &amp; SDK releases.</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <footer class="slashdot-footer">
+    <div>
+      <strong>EmbeddedDot /.</strong> — Localhost Daily Embedded AI Curation Engine | 7 Free Sources + SQLite + Gemini 3.8 Flash
+    </div>
+    <div class="footer-sub">
+      "All your SRAM are belong to us." — Supports rolling 3-year lookback on demand.
+    </div>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
